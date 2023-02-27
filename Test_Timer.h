@@ -6,20 +6,46 @@
 #include <thread>
 #include <atomic>
 #include <functional>
+#include <type_traits>
 
 class Timer
 {	
 public:
-	Timer(const std::chrono::milliseconds interval) { m_interval = interval; };
+	Timer(const std::chrono::milliseconds interval, const bool singleShot = false) {
+		m_interval = interval; m_singleShot = singleShot;};
 	~Timer() {};
 
-	template<class callable, class ...Args>
-	void start(callable&& callback, Args&&... args, const bool singleShot = false);
-	void stop() { m_continueExec = false; };
+	template<class callable, class... ArgTypes>
+	void start(callable&& callback, ArgTypes&&... args)
+	{
+		std::function<typename std::result_of<callable(ArgTypes...)>::type()> task(std::bind(std::forward<callable>(callback), std::forward<Args>(args)...));
 
-private:
-	template<class callable, class ...Args>
-	void execute(std::function<typename std::result_of<callable(Args...)>::type()> task);
+		//task();
+
+		auto exec = [this, task]() {
+
+			auto start = std::chrono::steady_clock::now();
+
+			while (m_continueExec)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+				//std::cout << elapsedTime.count() << ";";
+				if (elapsedTime.count() >= m_interval.count())
+				{
+					task();
+					if (m_singleShot) { break; };
+					start = std::chrono::steady_clock::now();
+				}
+			}
+		};
+
+		m_thread = std::thread(std::move(exec));
+
+		m_thread.detach();
+	};
+
+	void stop() { m_continueExec = false; };
 
 private:
 	std::chrono::milliseconds m_interval;
@@ -27,33 +53,5 @@ private:
 	std::atomic<bool> m_singleShot{ false };
 	std::atomic<bool> m_continueExec {true };
 };
-
-template<class callable, class ...Args>
-void Timer::execute(std::function<typename std::result_of<callable(Args...)>::type()> task)
-{
-	auto start = std::chrono::steady_clock::now();
-	
-	while (m_continueExec)
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		auto elapsedTime = std::chrono::steady_clock::now() - start;
-		if (std::duration_cast<std::chrono::milliseconds>(elapsedTime.count() >= m_interval))
-		{
-			task();
-			if (m_singleShot)
-				break;
-			start = std::chrono::steady_clock::now();
-		}
-	}
-}
-
-template<class callable, class ...Args>
-void Timer::start(callable&& callback, Args&&... args, const bool singleShot)
-{
-	m_singleShot = singleShot;
-	std::function<typename std::result_of<callable(Args...)>::type()> task(std::bind(std::forward<callable>(callback), std::forward<Args>(args)...));
-	m_thread = std::thread(&this->execute(task), this);
-	m_thread.detach();
-}
 
 #endif TEST_TIMER_H

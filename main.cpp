@@ -1,52 +1,23 @@
 #include "Test_Timer.h"
 
-//void test(int a)
-//{
-//	std::cout << "Executing !" << std::endl;
-//}
-
-class later
+void testFn()
 {
-public:
-    template <class callable, class... arguments>
-    later(int after, bool async, callable&& f, arguments&&... args)
-    {
-        std::function<typename std::result_of<callable(arguments...)>::type()> task(std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
-
-        if (async)
-        {
-            std::thread([after, task]() {
-                std::this_thread::sleep_for(std::chrono::milliseconds(after));
-                task();
-                }).detach();
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(after));
-            task();
-        }
-    }
-
-};
-
-void test1(void)
-{
-    return;
+    std::cout << "Executing !" << std::endl;
 }
 
-void test2(int a)
-{
-    printf("%i\n", a);
-    return;
-}
 
 int main()
 {
-    later later_test1(1000, false, &test1);
-    later later_test2(1000, false, &test2, 101);
+	Timer timer(std::chrono::milliseconds(3000));
+	timer.start(testFn);
 
-	/*Timer timer(std::chrono::milliseconds(1000));
-	timer.start(&test,0);*/
+    auto start = std::chrono::steady_clock::now();
+    while (true)
+    {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() > 20000)
+            timer.stop();
+    }
+    
 	std::cout << "End" << std::endl;
 	return 0;
 }
