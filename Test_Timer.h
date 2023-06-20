@@ -14,6 +14,9 @@ public:
 	Timer(const std::chrono::milliseconds interval, const bool singleShot = false) {
 		m_interval = interval; m_singleShot = singleShot;};
 	~Timer() {};
+	Timer(Timer const& timer) = delete;		// delete copy constructor
+	Timer(Timer const&& timer) = delete;	// delete move constructor
+	void operator=(Timer const& timer) = delete; // delete copy assignement operator
 
 	template<class callable, class... ArgTypes>
 	void start(callable&& callback, ArgTypes&&... args)

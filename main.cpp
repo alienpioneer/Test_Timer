@@ -2,7 +2,7 @@
 
 void testFn()
 {
-    std::cout << "Executing !" << std::endl;
+    std::cout << "Executing task!" << std::endl;
 }
 
 
