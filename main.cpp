@@ -1,4 +1,4 @@
-#include "Test_Timer.h"
+#include "Test_Timer.hpp"
 
 void testFn()
 {
@@ -15,6 +15,7 @@ int main()
 
     auto start = std::chrono::steady_clock::now();
 
+    // Test timet -> count 20 seconds then stop the timer
     while (true)
     {
         long long currentTimeDif = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
@@ -27,7 +28,7 @@ int main()
             previousSecond = currentSecond;
         }
             
-        if (currentSecond > 20)
+        if (currentSecond >= 20)
         {
             timer.stop();
             break;

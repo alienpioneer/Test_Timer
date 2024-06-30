@@ -18,32 +18,28 @@ public:
 	Timer(Timer const&& timer) = delete;	// delete move constructor
 	void operator=(Timer const& timer) = delete; // delete copy assignement operator
 
+	// Main function that starts the timer and executes the task after each interval
+	// If singleShot is false, the task executes only one, if not it executes periodically
 	template<class callable, class... ArgTypes>
 	void start(callable&& callback, ArgTypes&&... args)
 	{
 		std::function<typename std::result_of<callable(ArgTypes...)>::type()> task(std::bind(std::forward<callable>(callback), std::forward<Args>(args)...));
 
-		//task();
-
-		auto exec = [this, task]() {
-
-			auto start = std::chrono::steady_clock::now();
+		auto executionFunction = [this, task]() {
 
 			while (m_continueExec)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-				auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-				//std::cout << elapsedTime.count() << ";";
-				if (elapsedTime.count() >= m_interval.count())
-				{
-					task();
-					if (m_singleShot) { break; };
-					start = std::chrono::steady_clock::now();
-				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(m_interval.count()));
+				// Task executes, then the timer goes to sleep again for the required interval
+				task();
+				if (m_singleShot) 
+				{ 
+					break;
+				};
 			}
 		};
 
-		m_thread = std::thread(std::move(exec));
+		m_thread = std::thread(std::move(executionFunction));
 
 		m_thread.detach();
 	};
